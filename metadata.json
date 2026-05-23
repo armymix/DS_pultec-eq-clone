@@ -1,0 +1,6 @@
+{
+  "name": "Analog EQ Simulator",
+  "description": "A web-based analog style equalizer interface inspired by classic hardware.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
