@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
-import { Upload, Play, Pause, Volume2 } from 'lucide-react';
-
-const MAP_LOW_FREQS = [20, 30, 60, 100];
-const MAP_HIGH_BOOST_FREQS = [3, 4, 5, 8, 10, 12, 16];
-const MAP_HIGH_ATTEN_FREQS = [5, 10, 20];
+import { motion, AnimatePresence } from 'motion/react';
+import { Upload, Play, Pause, Volume2, Save, ChevronDown, Check, X } from 'lucide-react';
+import { MAP_LOW_FREQS, MAP_HIGH_BOOST_FREQS, MAP_HIGH_ATTEN_FREQS } from './constants';
+import type { EQState } from './types';
+import { PRESETS, DEFAULT_STATE } from './presets';
 
 // --- Audio Processing Logic ---
 class WebAudioEQ {
@@ -101,20 +100,6 @@ class WebAudioEQ {
 
 const audioEngine = new WebAudioEQ();
 
-// --- Types & State ---
-type EQState = {
-  power: boolean;
-  bypassEQ: boolean; // false = In, true = Out (Bypassed)
-  lowBoost: number;
-  lowAtten: number;
-  lowFreqIndex: number;
-  highBoost: number;
-  bandwidth: number;
-  highBoostFreqIndex: number;
-  highAtten: number;
-  highAttenFreqIndex: number;
-};
-
 // --- UI Subcomponents ---
 
 const renderKnobNumbers = (radiusOffset = 0) => {
@@ -125,9 +110,11 @@ const renderKnobNumbers = (radiusOffset = 0) => {
     const x = Math.cos(rad) * radius;
     const y = Math.sin(rad) * radius;
     return (
-      <span key={n} style={{position:'absolute', left: 40 + x, top: 40 + y, transform: 'translate(-50%, -50%)'}} className="text-[10px] font-bold text-[#f0f0f0]/60 select-none pointer-events-none">
-        {n}
-      </span>
+      <div 
+        key={n} 
+        style={{position:'absolute', left: 40 + x, top: 40 + y, transform: 'translate(-50%, -50%)'}} 
+        className="w-[3px] h-[3px] rounded-full bg-[#888] shadow-[0_0_2px_rgba(0,0,0,0.8)] select-none pointer-events-none"
+      />
     );
   });
 };
@@ -164,16 +151,19 @@ const BlackKnob = ({ value, onChange, label, subLabel }: { value: number, onChan
       <div className="relative w-20 h-20 flex items-center justify-center">
         {renderKnobNumbers(2)}
         <div 
-          className="relative w-16 h-16 rounded-full cursor-ns-resize shadow-[0_8px_12px_rgba(0,0,0,0.8)]"
+          className="relative w-16 h-16 rounded-full cursor-ns-resize shadow-[0_4px_8px_rgba(0,0,0,0.6)]"
           onPointerDown={handlePointerDown}
         >
           <motion.div 
-            className="absolute inset-0 rounded-full bg-gradient-to-b from-[#252525] to-[#050505] border border-[#111]"
+            className="absolute inset-0 rounded-full bg-gradient-to-b from-[#222] to-[#0a0a0a] border border-[#050505]"
             animate={{ rotate: angle }}
             transition={{ type: 'spring', bounce: 0, duration: 0 }}
           >
-            <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[3px] h-[25%] bg-[#ffffff] shadow-sm rounded-full opacity-90" />
-            <div className="absolute inset-[25%] rounded-full bg-gradient-to-tr from-[#1a1a1a] to-[#2a2a2a] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]" />
+            {/* Subtle top reflection */}
+            <div className="absolute inset-x-[15%] top-[5%] h-[20%] bg-gradient-to-b from-white/10 to-transparent rounded-full pointer-events-none" />
+            {/* Indicator Dot */}
+            <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[4px] h-[4px] bg-[#d0d0d0] shadow-[0_0_4px_rgba(255,255,255,0.4)] rounded-full opacity-90" />
+            <div className="absolute inset-[30%] rounded-full bg-gradient-to-tr from-[#0a0a0a] to-[#151515] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]" />
           </motion.div>
         </div>
       </div>
@@ -233,18 +223,19 @@ const ChickenHeadKnob = ({ index, options, onChange, label, subLabel }: { index:
         })}
 
         <div 
-          className="relative w-12 h-12 cursor-ns-resize z-20"
+          className="relative w-16 h-16 cursor-ns-resize z-20 shadow-[0_4px_8px_rgba(0,0,0,0.6)] rounded-full"
           onPointerDown={handlePointerDown}
         >
           <motion.div 
-            className="absolute inset-0"
+            className="absolute inset-0 rounded-full bg-gradient-to-b from-[#222] to-[#0a0a0a] border border-[#050505]"
             animate={{ rotate: currentAngle }}
             transition={{ type: 'spring', bounce: 0.3, duration: 0.3 }}
           >
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-[60px] bg-gradient-to-b from-[#151515] to-[#252525] shadow-[0_8px_15px_-3px_rgba(0,0,0,0.8)] rounded-t-full rounded-b-md border border-[#111]" style={{ transform: 'translate(-50%, -60%)' }}>
-                <div className="absolute top-[3px] left-1/2 -translate-x-1/2 w-[2px] h-[10px] bg-white rounded-full opacity-80 shadow-sm" />
-             </div>
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-full border border-[#222]" />
+             {/* Subtle top reflection */}
+             <div className="absolute inset-x-[15%] top-[5%] h-[20%] bg-gradient-to-b from-white/10 to-transparent rounded-full pointer-events-none" />
+             {/* Indicator Dot */}
+             <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[4px] h-[4px] bg-[#d0d0d0] shadow-[0_0_4px_rgba(255,255,255,0.4)] rounded-full opacity-90" />
+             <div className="absolute inset-[30%] rounded-full bg-gradient-to-tr from-[#0a0a0a] to-[#151515] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]" />
           </motion.div>
         </div>
       </div>
@@ -285,18 +276,18 @@ const StandardToggleSwitch = ({ value, onChange, labelUp, labelDown }: { value: 
   </div>
 );
 
-const RedJewelLight = ({ on }: { on: boolean }) => (
+const AmberJewelLight = ({ on }: { on: boolean }) => (
   <div className="relative w-12 h-12 flex items-center justify-center rounded-full bg-gradient-to-b from-[#222] to-[#111] shadow-[0_2px_4px_rgba(255,255,255,0.1),_inset_0_4px_6px_rgba(0,0,0,1)]">
-    <div className="absolute inset-[6px] rounded-full border border-red-950 bg-[#3a0000] overflow-hidden">
+    <div className="absolute inset-[6px] rounded-full border border-orange-950 bg-[#3a1a00] overflow-hidden">
       <div 
-        className={`absolute inset-0 bg-red-600 transition-opacity duration-300 ${on ? 'opacity-100' : 'opacity-0'}`} 
+        className={`absolute inset-0 bg-orange-600 transition-opacity duration-300 ${on ? 'opacity-100' : 'opacity-0'}`} 
         style={{
-            background: 'radial-gradient(circle at 40% 40%, #ff4b4b 0%, #a00 50%, #400 100%)',
-            boxShadow: 'inset 0 0 10px rgba(255,255,255,0.5), 0 0 20px 5px rgba(255,0,0,0.6)'
+            background: 'radial-gradient(circle at 40% 40%, #ff8c00 0%, #a33e00 50%, #401000 100%)',
+            boxShadow: 'inset 0 0 10px rgba(255,255,255,0.5), 0 0 20px 5px rgba(255,140,0,0.6)'
         }}
       />
       {/* Jewel faceted reflections */}
-      <div className="absolute top-[10%] left-[20%] w-[30%] h-[20%] bg-pink-100/40 rounded-full blur-[1px] rotate-[-20deg]" />
+      <div className="absolute top-[10%] left-[20%] w-[30%] h-[20%] bg-amber-100/40 rounded-full blur-[1px] rotate-[-20deg]" />
       {/* Texture for gem look */}
       <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, black 2px, black 4px)'}} />
     </div>
@@ -306,29 +297,91 @@ const RedJewelLight = ({ on }: { on: boolean }) => (
 
 // --- Main App Component ---
 export default function App() {
-  const [eqState, setEqState] = useState<EQState>({
-    power: true,
-    bypassEQ: false,
-    lowBoost: 0,
-    lowAtten: 0,
-    lowFreqIndex: 0,
-    highBoost: 0,
-    bandwidth: 50,
-    highBoostFreqIndex: 3,
-    highAtten: 0,
-    highAttenFreqIndex: 1,
+  const [eqState, setEqState] = useState<EQState>({ ...DEFAULT_STATE });
+  const [userPresets, setUserPresets] = useState<Record<string, Partial<EQState>>>(() => {
+    const saved = localStorage.getItem('ds-eq-presets');
+    return saved ? JSON.parse(saved) : {};
   });
+  const [currentPreset, setCurrentPreset] = useState<string>("Default");
+  const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+
+  const allPresets = { ...PRESETS, ...userPresets };
 
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // 監聽宿主 (DAW/C++) 傳來的參數更新 (例如 Automation 或是恢復專案狀態)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const juceObj = (window as any).juce;
+      if (juceObj) {
+        juceObj.onParameterChange = (param: string, value: any) => {
+          setEqState(prev => {
+            const newState = { ...prev, [param]: value };
+            audioEngine.updateParams(newState);
+            return newState;
+          });
+        };
+      }
+    }
+  }, []);
+
   const handleParamChange = (param: keyof EQState, value: any) => {
     setEqState(prev => {
       const newState = { ...prev, [param]: value };
       audioEngine.updateParams(newState);
+      
+      // VST / JUCE Bridge: 將參數改變發送給 C++ 後端
+      if (typeof window !== 'undefined') {
+        const juceObj = (window as any).juce;
+        if (juceObj && typeof juceObj.sendParameterChange === 'function') {
+          // 如果宿主是 JUCE，呼叫 JUCE 方法
+          juceObj.sendParameterChange(param, value);
+        } else {
+          // 在一般瀏覽器中，發送自訂事件方便擴充與除錯
+          window.dispatchEvent(new CustomEvent('vst-param-change', { 
+            detail: { param, value } 
+          }));
+        }
+      }
+      
       return newState;
     });
+    // If we changed a parameter, we are no longer purely on the named preset
+    if (currentPreset !== "Custom") {
+      setCurrentPreset("Custom");
+    }
+  };
+
+  const loadPreset = (name: string) => {
+    const preset = allPresets[name];
+    if (preset) {
+      setEqState(prev => {
+        const newState = { ...prev, ...preset };
+        audioEngine.updateParams(newState);
+        return newState;
+      });
+      setCurrentPreset(name);
+      setIsPresetMenuOpen(false);
+    }
+  };
+
+  const savePreset = () => {
+    setIsSaveModalOpen(true);
+    setSaveName(currentPreset === "Custom" ? "" : currentPreset);
+  };
+
+  const confirmSavePreset = () => {
+    if (saveName && saveName.trim()) {
+      const newPresets = { ...userPresets, [saveName.trim()]: { ...eqState } };
+      setUserPresets(newPresets);
+      localStorage.setItem('ds-eq-presets', JSON.stringify(newPresets));
+      setCurrentPreset(saveName.trim());
+      setIsSaveModalOpen(false);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -371,51 +424,112 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#111111] flex flex-col items-center justify-center p-8 font-sans">
       
-      {/* Audio Player Controls */}
-      <div className="w-full max-w-[1240px] bg-[#1e1e1e] p-4 rounded-t-lg border border-[#333] border-b-0 flex items-center gap-4 text-gray-400">
-        <label className="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] rounded cursor-pointer transition-colors text-sm font-medium">
-          <Upload size={16} />
-          {audioFile ? audioFile.name : 'Load Audio File'}
-          <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-        </label>
+      {/* Audio Player and Utilities Panel */}
+      <div className="w-full max-w-[1240px] bg-[#1e1e1e] p-4 rounded-t-lg border border-[#333] border-b-0 flex items-center justify-between text-gray-400 relative z-50">
         
-        <button 
-          onClick={togglePlay}
-          disabled={!audioFile}
-          className={`flex items-center gap-2 px-4 py-2 rounded font-medium transition-colors ${!audioFile ? 'bg-gray-800 text-gray-600 cursor-not-allowed' : 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30'}`}
-        >
-          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          {isPlaying ? 'Pause' : 'Play'}
-        </button>
+        {/* Left: Transport */}
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] rounded cursor-pointer transition-colors text-sm font-medium shadow-sm">
+            <Upload size={16} />
+            {audioFile ? audioFile.name : 'Load Audio File'}
+            <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+          </label>
+          
+          <button 
+            onClick={togglePlay}
+            disabled={!audioFile}
+            className={`flex items-center gap-2 px-4 py-2 rounded font-medium transition-colors shadow-sm ${!audioFile ? 'bg-[#1a1a1a] text-gray-600 cursor-not-allowed' : 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'}`}
+          >
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            {isPlaying ? 'Pause' : 'Play'}
+          </button>
+        </div>
 
-        <div className="ml-auto text-xs text-gray-500 flex items-center gap-2 pr-2">
-          <Volume2 size={14} />
-          Web Audio EQ Integration
+        {/* Center: Presets */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button 
+              onClick={() => setIsPresetMenuOpen(!isPresetMenuOpen)}
+              className="flex items-center justify-between gap-3 w-48 px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] rounded text-sm font-medium transition-colors border border-[#444] shadow-sm text-gray-200"
+            >
+              <span className="truncate">{currentPreset}</span>
+              <ChevronDown size={14} className="text-gray-500" />
+            </button>
+            <AnimatePresence>
+              {isPresetMenuOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full mt-2 w-48 bg-[#2a2a2a] border border-[#444] rounded shadow-xl overflow-hidden"
+                >
+                  <div className="max-h-64 overflow-y-auto">
+                    {Object.keys(allPresets).map(name => (
+                      <button
+                        key={name}
+                        onClick={() => loadPreset(name)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-orange-500/20 hover:text-orange-400 transition-colors flex items-center justify-between"
+                      >
+                        {name}
+                        {currentPreset === name && <Check size={14} className="text-orange-500" />}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <button 
+            onClick={savePreset}
+            className="p-2 bg-[#2a2a2a] hover:bg-[#333] rounded transition-colors text-gray-400 hover:text-orange-400 border border-[#444] shadow-sm"
+            title="Save Preset"
+          >
+            <Save size={16} />
+          </button>
+        </div>
+
+        {/* Right: Tools */}
+        <div className="flex items-center gap-4">
+          <div className="text-[10px] uppercase font-bold tracking-widest text-[#555] flex items-center gap-2">
+            <Volume2 size={14} />
+            DS DSP Engine
+          </div>
         </div>
         <audio ref={audioRef} crossOrigin="anonymous" />
       </div>
 
       {/* Hardware Panel Container */}
       <div 
-        className="w-full max-w-[1240px] rounded-sm p-4 relative shadow-[0_30px_60px_-15px_rgba(0,0,0,1)] border border-[#2a2d33] select-none"
-        style={{ background: 'linear-gradient(180deg, #4b525d 0%, #3a414a 100%)' }}
+        className="w-full max-w-[1240px] relative shadow-[0_30px_60px_-15px_rgba(0,0,0,1)] select-none rounded-[1px] bg-[#1a1a1c]"
       >
+        {/* Outer Frame Bevels */}
+        <div className="absolute inset-0 border-[4px] border-t-[#2a2a2c] border-b-[#0c0c0d] border-l-[#222] border-r-[#151515] pointer-events-none z-20 rounded-[2px]" />
+        
+        {/* Inner Panel Bevel */}
+        <div className="absolute inset-[4px] border border-[#050505] shadow-[inset_0_2px_15px_rgba(0,0,0,0.8)] pointer-events-none z-20" />
+        
+        {/* Panel Surface */}
+        <div className="absolute inset-[5px] bg-gradient-to-b from-[#222325] to-[#18191a]" />
+        
+        {/* Horizontal Seam */}
+        <div className="absolute top-[40%] left-[5px] right-[5px] h-[2px] bg-black/60 border-b border-white/5 pointer-events-none z-0" />
+
         {/* Subtle noise texture */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")'}} />
+        <div className="absolute inset-[5px] opacity-[0.07] pointer-events-none mix-blend-overlay z-0" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")'}} />
         
         {/* Rack Ear Screws */}
         {[
-          {top: '16px', left: '16px'}, {bottom: '16px', left: '16px'},
-          {top: '16px', right: '16px'}, {bottom: '16px', right: '16px'}
+          {top: '12px', left: '12px'}, {bottom: '12px', left: '12px'},
+          {top: '12px', right: '12px'}, {bottom: '12px', right: '12px'}
         ].map((pos, i) => (
-           <div key={i} className="absolute w-5 h-5 rounded-full bg-gradient-to-br from-[#666] to-[#222] shadow-[inset_1px_1px_2px_rgba(255,255,255,0.4),_0_2px_4px_rgba(0,0,0,0.5)] border border-[#333]" style={pos}>
-              <div className="absolute inset-[3px] bg-[#111] rounded-full rotate-45 flex items-center justify-center">
-                 <div className="w-[1px] h-full bg-[#333]" />
+           <div key={i} className="absolute w-[18px] h-[18px] rounded-full bg-gradient-to-br from-[#444] to-[#151515] shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),_0_2px_4px_rgba(0,0,0,0.8)] border border-[#0a0a0a] z-20" style={pos}>
+              <div className="absolute inset-[4px] bg-[#111] rounded-full rotate-45 flex items-center justify-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]">
+                 <div className="w-full h-[1.5px] bg-black" />
               </div>
            </div>
         ))}
 
-        <div className="px-12 py-10 flex flex-col gap-12 relative z-10">
+        <div className="px-12 py-10 flex flex-col gap-12 relative z-10 w-full">
           
           {/* Top Row: Main Knobs */}
           <div className="flex justify-between items-start">
@@ -448,16 +562,12 @@ export default function App() {
             <div className="w-[280px] flex items-end justify-between pl-4 pb-2">
                <div className="flex flex-col items-center">
                  <div className="text-[11px] font-bold text-[#d8d8d8] opacity-90 tracking-widest leading-loose text-center">
-                   PULTEC<br/>
-                   PROGRAM EQUALIZER<br/>
-                   EQP-1A
+                   DIRTY STUDIO<br/>
+                   GOLD TUBE EQUALIZER<br/>
                  </div>
                  <div className="mt-2 flex flex-col items-center">
-                   <div className="text-[9px] border border-[#a0a0a0] px-2 py-0.5 rounded-sm inline-block text-[#d8d8d8]">
-                     LEGACY
-                   </div>
-                   <div className="mt-1 text-[11px] font-bold text-[#d8d8d8] tracking-[0.4em]">
-                     DS
+                   <div className="text-[9px] border-b-2 border-orange-500 px-2 py-0.5 inline-block text-orange-400">
+                     PRO EDITION
                    </div>
                  </div>
                </div>
@@ -475,7 +585,7 @@ export default function App() {
                  index={eqState.lowFreqIndex} 
                  options={MAP_LOW_FREQS} 
                  onChange={v => handleParamChange('lowFreqIndex', v)} 
-                 label="CPS" 
+                 label="Hz" 
                  subLabel="LOW FREQUENCY" 
                />
                <BlackKnob 
@@ -483,9 +593,9 @@ export default function App() {
                  onChange={v => handleParamChange('bandwidth', v)} 
                  label="BANDWIDTH" 
                  subLabel={
-                   <div className="flex justify-between w-[150px] absolute left-1/2 -translate-x-1/2">
-                     <span>SHARP</span>
-                     <span>BROAD</span>
+                   <div className="flex justify-between w-[80px] absolute left-1/2 -translate-x-1/2">
+                     <span>NARROW</span>
+                     <span>WIDE</span>
                    </div>
                  } 
                />
@@ -493,7 +603,7 @@ export default function App() {
                  index={eqState.highBoostFreqIndex} 
                  options={MAP_HIGH_BOOST_FREQS} 
                  onChange={v => handleParamChange('highBoostFreqIndex', v)} 
-                 label="KCS" 
+                 label="kHz" 
                  subLabel="HIGH FREQUENCY" 
                />
             </div>
@@ -501,7 +611,7 @@ export default function App() {
             {/* Power Light & Toggle */}
             <div className="w-[280px] flex items-end justify-end gap-12 pr-[48px] pb-4">
                <div className="flex flex-col items-center gap-2">
-                  <RedJewelLight on={eqState.power} />
+                  <AmberJewelLight on={eqState.power} />
                </div>
                <div className="flex flex-col">
                  <StandardToggleSwitch 
@@ -519,6 +629,56 @@ export default function App() {
         </div>
 
       </div>
+
+      {/* Save Modal */}
+      <AnimatePresence>
+        {isSaveModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#1e1e1e] border border-[#333] p-6 rounded-lg shadow-2xl w-[320px]"
+            >
+              <div className="flex justify-between items-center mb-4 text-gray-300">
+                <h3 className="font-bold">Save Preset</h3>
+                <button onClick={() => setIsSaveModalOpen(false)} className="hover:text-white transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <input 
+                type="text" 
+                value={saveName}
+                onChange={e => setSaveName(e.target.value)}
+                placeholder="Enter preset name..."
+                className="w-full bg-[#111] border border-[#444] rounded px-3 py-2 text-white mb-4 focus:outline-none focus:border-orange-500"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && saveName.trim()) {
+                    confirmSavePreset();
+                  }
+                }}
+              />
+              <div className="flex justify-end gap-2">
+                <button 
+                  onClick={() => setIsSaveModalOpen(false)}
+                  className="px-4 py-2 rounded text-sm text-gray-400 hover:bg-[#333] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmSavePreset}
+                  disabled={!saveName.trim()}
+                  className="px-4 py-2 rounded text-sm bg-orange-600 text-white hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
